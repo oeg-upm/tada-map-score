@@ -27,3 +27,6 @@ class ScoreTest(unittest.TestCase):
 
         # assert the status code of the response
         self.assertEqual(result.status_code, 200)
+
+    def test_negative(self):
+        self.assertEqual(1,2)
