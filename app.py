@@ -6,44 +6,20 @@ from models import Bite, database, create_tables
 from flask import Flask, g, request, render_template
 from werkzeug.utils import secure_filename
 from graph import type_graph
-
 import requests
-
 
 app = Flask(__name__)
 
 
-@app.route('/test')
-def test_combine():
-    import socket
-    if request.args.get('dest') is None:
-        return "combine ip: "+str(socket.gethostbyname('combine'))+ " - " + str(socket.gethostbyname('score'))
-
-    # else:
-    #     return "dest: <%s>" % request.args.get('dest')
-    import requests
-    try:
-        r = requests.get(request.args.get('dest'))
-        return r.content
-    except Exception as e:
-        return str(e)
-    return 'Hello World! graph'
-
-
 @app.route('/')
 def hello_world():
-    return 'Hello World! graph'
+    return 'Hello World! This is score'
 
 
 @app.route('/score', methods=['POST'])
 def score():
     logger.debug("\nin score")
-    # print(request.files)
     uploaded_file = request.files['file_slice']
-    # print("post data:" )
-    # print request.form
-    # print("file content: ")
-    # print(uploaded_file.read())
     table_name = request.form['table']
     b = Bite(table=table_name, slice=request.form['slice'], column=request.form['column'],
              addr=request.form['addr'])
@@ -55,18 +31,19 @@ def score():
         'addr': b.addr,
         'total': request.form['total']
     }
-    # print("address: "+str(request.form['addr']+"/add"))
-    logger.debug("\nsending to combine: "+str(get_params))
-    r = requests.get(request.form['addr']+"/add", params=get_params)
-    if r.status_code != 200:
-        logger.debug("error: "+r.content)
+    if b.addr != '':
+        logger.debug("\nsending to combine: " + str(get_params))
+        r = requests.get(b.addr+"/add", params=get_params)
+        if r.status_code != 200:
+            logger.debug("error: "+r.content)
+    else:
+        logger.debug("\nempty address of combine service: " + str(get_params))
     return 'data received and processed'
 
 
 @app.route('/register', methods=['GET'])
 def register():
     table_name = request.args.get('table')
-    # Bite.create(table=table_name, slice=0, column=0)
     b = Bite(table=table_name, slice=0, column=0, addr="default")
     b.save()
     return 'Table: %s is added' % table_name
