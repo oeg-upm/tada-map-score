@@ -1,4 +1,5 @@
 from app import app
+from models import create_tables
 import unittest
 import os
 from cStringIO import StringIO
@@ -11,6 +12,7 @@ class ScoreTest(unittest.TestCase):
 
     @classmethod
     def setUpClass(cls):
+        create_tables()
         pass
 
     @classmethod
