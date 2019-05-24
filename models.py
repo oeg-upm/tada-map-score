@@ -4,8 +4,12 @@ from peewee import *
 # DATABASE = ':memory:'
 DATABASE = 'data.db'
 
-
 database = SqliteDatabase(DATABASE)
+
+
+# def get_database(name=DATABASE):
+#     database = SqliteDatabase(name)
+#     return database
 
 
 class BaseModel(Model):
@@ -18,6 +22,7 @@ class Bite(BaseModel):
     column = IntegerField()  # column order (position)
     slice = IntegerField()  # slice order (position)
     addr = CharField()  # the url:ip of the server that the processed data need to be sent to
+    fname = CharField()  # the name of the uploaded file
 
 
 def create_tables():

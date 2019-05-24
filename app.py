@@ -1,14 +1,23 @@
 import os
-import logging
-logging.basicConfig(level=logging.DEBUG)
-logger = logging.getLogger(__name__)
+
 from models import Bite, database, create_tables
-from flask import Flask, g, request, render_template
+from flask import Flask, g, request, render_template, jsonify
 from werkzeug.utils import secure_filename
 from graph import type_graph
 import requests
+import random
+import string
+import subprocess
+from logger import get_logger
+
+logger = get_logger(__name__)
 
 app = Flask(__name__)
+
+
+def get_random(size=4):
+    letters = string.ascii_lowercase
+    return ''.join(random.choice(letters) for i in range(size))
 
 
 @app.route('/')
@@ -21,9 +30,13 @@ def score():
     logger.debug("\nin score")
     uploaded_file = request.files['file_slice']
     table_name = request.form['table']
-    b = Bite(table=table_name, slice=request.form['slice'], column=request.form['column'],
-             addr=request.form['addr'])
+    column = request.form['column']
+    fname = table_name + "__" + get_random() + "__" + str(column) + ".tsv"
+    fname = secure_filename(fname)
+    b = Bite(table=table_name, slice=request.form['slice'], column=column,
+             addr=request.form['addr'], fname=fname)
     b.save()
+    uploaded_file.save(os.path.join('local_uploads', fname))
     get_params = {
         'table': b.table,
         'column': b.column,
@@ -31,14 +44,16 @@ def score():
         'addr': b.addr,
         'total': request.form['total']
     }
-    if b.addr != '':
-        logger.debug("\nsending to combine: " + str(get_params))
-        r = requests.get(b.addr+"/add", params=get_params)
-        if r.status_code != 200:
-            logger.debug("error: "+r.content)
+    if app.testing:
+        from score import parse_args
+        logger.debug("will wait for the scoring to be done")
+        parse_args(args=["--id", "%d" % b.id])
+        return jsonify({'msg': 'scored'})
     else:
-        logger.debug("\nempty address of combine service: " + str(get_params))
-    return 'data received and processed'
+        logger.debug("will return and the scoring will run in a different thread")
+        comm = "python score --id %s" % str(b.id)
+        subprocess.Popen(comm, shell=True)
+        return jsonify({'msg': 'scoring in progress'})
 
 
 @app.route('/register', methods=['GET'])
@@ -54,12 +69,12 @@ def fetch():
     bites = """
     Bites
     <table>
-            <tr>
+        <tr>
             <td>Table</td>
             <td>Column</td>
             <td>Slice</td>
+            <td>Fname</td>
             <td>Address</td>
-
         </tr>
     """
     for bite in Bite.select():
@@ -67,6 +82,7 @@ def fetch():
         bites += "<td>%s</td>\n" % bite.table
         bites += "<td>%d</td>\n" % bite.column
         bites += "<td>%d</td>\n" % bite.slice
+        bites += "<td>%s</td>\n" % bite.fname
         bites += "<td>%s</td>\n" % bite.addr
         bites += "</tr>"
     bites += "</table>"
@@ -75,6 +91,10 @@ def fetch():
 
 @app.before_request
 def before_request():
+    # if app.testing:
+    #    print("\n\ntesting")
+    # else:
+    #     print("\n\nnot testing")
     g.db = database
     g.db.connect()
 

@@ -7,3 +7,4 @@ Part of tada-gam project. This is responsible for assigning scores to each type 
 To run the application with docker, you can 
 run the script `run_docker.sh`
 
+*Note: there is only one database that is used for both, testing and live.*
