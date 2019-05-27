@@ -46,7 +46,7 @@ class ScoreTest(unittest.TestCase):
         data['file_slice'] = (StringIO(content), "players.csv")
         result = self.app.post('/score', data=data, content_type='multipart/form-data')
         self.assertEqual(result.status_code, 200)
-        print("data dir: "+data_dir)
+        # print("data dir: "+data_dir)
         data_file_exists = os.path.isfile(data_dir)
         self.assertTrue(data_file_exists)
         annotated_cells = {"data":
@@ -66,5 +66,8 @@ class ScoreTest(unittest.TestCase):
                            }
         f = open(data_dir)
         computed_data = json.loads(f.read())
-        # self.assertDictEqual(computed_data, annotated_cells)
-        self.assertListEqual(annotated_cells["data"].keys(), computed_data["data"].keys())
+        self.assertListEqual(sorted(annotated_cells["data"]), sorted(computed_data["data"]))
+        k1 = annotated_cells["data"][0].keys()[0]
+        k2 = annotated_cells["data"][0][k1].keys()[0]
+        del annotated_cells["data"][0][k1][k2][0]
+        self.assertTrue(sorted(annotated_cells["data"]) != sorted(computed_data["data"]))

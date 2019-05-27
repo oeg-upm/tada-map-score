@@ -3,6 +3,7 @@ import time
 import json
 import os
 from models import create_tables, database, Bite
+import logging
 from logger import get_logger
 import easysparql
 from PPool.Pool import Pool
