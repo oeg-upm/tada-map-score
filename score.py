@@ -76,14 +76,6 @@ def func_collect_annotations(pipe):
         time.sleep(1)
 
 
-def workflow():
-    # annotate each cell
-    # build graph
-    # compute scores
-    # send scored graph to combine
-    pass
-
-
 def annotate_column(bite, endpoint, onlydomain):
     """
     :param fname:
@@ -109,16 +101,23 @@ def annotate_column(bite, endpoint, onlydomain):
     collector_process.terminate()
     logger.debug("annotated cells: "+str(annotated_cells))
     os.remove(fdir)
-    bite.fname = ""
+    json_fname = ".".join(bite.fname.split(".")[:-1])+".json"
+    bite.fname = json_fname
     bite.save()
     json_str = json.dumps({"data": annotated_cells})
-    f = open(os.path.join(UPLOAD_DIR, "data.json"), "w")
+    # f = open(os.path.join(UPLOAD_DIR, "data.json"), "w")
+    f = open(os.path.join(UPLOAD_DIR, bite.fname), "w")
     f.write(json_str)
     f.close()
 
 
 def score(slice_id, endpoint, onlydomain):
     """
+
+    # annotate each cell
+    # build graph
+    # compute scores
+    # send scored graph to combine
 
     :param slice_id:
     :param endpoint:
@@ -134,23 +133,14 @@ def score(slice_id, endpoint, onlydomain):
         bite = bites[0]
         logger.debug("The bite is found")
         annotate_column(bite, endpoint, onlydomain)
-    #
-    #
-    # if b.addr != '':
-    #     logger.debug("\nsending to combine: " + str(get_params))
-    #     r = requests.get(b.addr+"/add", params=get_params)
-    #     if r.status_code != 200:
-    #         logger.debug("error: "+r.content)
-    #         return jsonify({'error': 'Error received from the combine instance: '+r.content}, status_code=500)
-    # else:
-    #     logger.debug("\nempty address of combine service: " + str(get_params))
-    # return jsonify({'msg': 'data received and processed'})
+
+    return True
 
 
 def parse_args(args=None):
     parser = argparse.ArgumentParser(description='Score a given slice of data')
     parser.add_argument('--id', help="The id of the slice to be scored")
-    parser.add_argument('--endpoint', default='https://dbpedia.org/sparql', help='The url of the SPARQL endpoint')
+    parser.add_argument('--endpoint', default='http://dbpedia.org/sparql', help='The url of the SPARQL endpoint')
     parser.add_argument('--onlydomain', default='http://dbpedia.org/ontology/', help="Restrict the annotation of cells to include the given domain")
     if args is None:
         args = parser.parse_args()

@@ -96,7 +96,7 @@ def before_request():
     # else:
     #     print("\n\nnot testing")
     g.db = database
-    g.db.connect()
+    g.db.connect(reuse_if_open=True)
 
 
 @app.after_request

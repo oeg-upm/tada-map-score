@@ -34,21 +34,28 @@ class ScoreTest(unittest.TestCase):
         self.assertEqual(result.status_code, 200)
 
     def test_score(self):
-        data_dir = os.path.join(DATA_DIR, 'data.json')
-        data_file_exists = os.path.isfile(data_dir)
-
-        if data_file_exists:
-            os.remove(data_dir)
-
+        # data_dir = os.path.join(DATA_DIR, 'data.json')
+        # data_file_exists = os.path.isfile(data_dir)
+        #
+        # if data_file_exists:
+        #     os.remove(data_dir)
+        table_name = 'players'
         players = ["Ben Pipes", "Anouer Taouerghi", "Anna Matienko"]
         content = "\t".join(players)
-        data = {'table': 'players', 'column': 0, 'slice': 0, 'total': 1, 'addr': ''}
+        data = {'table': table_name, 'column': 0, 'slice': 0, 'total': 1, 'addr': ''}
         data['file_slice'] = (StringIO(content), "players.csv")
+        Bite.delete().execute()  # delete all instances
+        print("after deletiong: "+str(len(Bite.select())))
         result = self.app.post('/score', data=data, content_type='multipart/form-data')
+        database.connect(reuse_if_open=True)
         self.assertEqual(result.status_code, 200)
         # print("data dir: "+data_dir)
+        bites = Bite.select().where(Bite.table==table_name, Bite.column==0)
+        self.assertEqual(len(bites), 1)
+        data_dir = os.path.join(DATA_DIR, bites[0].fname)
+        print("data_dir: "+data_dir)
         data_file_exists = os.path.isfile(data_dir)
-        self.assertTrue(data_file_exists)
+        self.assertTrue(data_file_exists, msg="The data file is not found")
         annotated_cells = {"data":
                                [{'Anouer Taouerghi': {u'http://dbpedia.org/resource/Anouer_Taouerghi': [
                                    u'http://dbpedia.org/ontology/Person',
@@ -71,3 +78,11 @@ class ScoreTest(unittest.TestCase):
         k2 = annotated_cells["data"][0][k1].keys()[0]
         del annotated_cells["data"][0][k1][k2][0]
         self.assertTrue(sorted(annotated_cells["data"]) != sorted(computed_data["data"]))
+
+    def test_fetch(self):
+        result = self.app.get('/fetch')
+        self.assertEqual(result.status_code, 200)
+
+    def test_hello(self):
+        result = self.app.get('/')
+        self.assertEqual(result.status_code, 200)
