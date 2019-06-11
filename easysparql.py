@@ -61,3 +61,20 @@ def get_classes(entity, endpoint):
     results = run_query(query=query, endpoint=endpoint)
     classes = [r['c']['value'] for r in results]
     return classes
+
+
+def get_parents_of_class(class_uri, endpoint):
+    """
+    get the parent class of the given class, get the first results in case of multiple ones
+    :param class_uri:
+    :param endpoint:
+    :return:
+    """
+    query = """
+    select distinct ?c where{
+    <%s> rdfs:subClassOf ?c.
+    }
+    """ % class_uri
+    results = run_query(query=query, endpoint=endpoint)
+    classes = [r['c']['value'] for r in results]
+    return classes
