@@ -22,21 +22,6 @@ logger = get_logger(__name__)
 MAX_NUM_PROCESSES = 5
 MAX_NUM_OF_THREADS = MAX_NUM_PROCESSES
 
-# class TestIter:
-#
-#     def __init__(self, the_list):
-#         self.the_list = the_list
-#         self.idx = 0
-#
-#     def __iter__(self):
-#         return self
-#
-#     def __next__(self):
-#         if self.idx < len(self.the_list):
-#             ret = self.the_list[self.idx]
-#             self.idx +=1
-#             return ret
-
 
 def annotate_cell(v, endpoint, onlydomain):
     """
@@ -79,20 +64,6 @@ def func_annotate_cell(v, endpoint, onlydomain, lock, pipe):
     lock.acquire()
     pipe.send(d)
     lock.release()
-
-
-# def func_collect_annotations(pipe):
-#     cells = []
-#     d = pipe.recv()
-#     while d is not None:
-#         logger.debug("collect: "+str(d))
-#         cells.append(d)
-#         d = pipe.recv()
-#     logger.debug("Gotten the terminal signal")
-#     pipe.send(cells)
-#     while True:
-#         logger.debug("waiting to get the data from the pipe")
-#         time.sleep(1)
 
 
 def func_collect_annotations(pipe):
@@ -223,16 +194,7 @@ def compute_classes_counts(endpoint):
         params.append(p)
     pool = TPool(max_num_of_threads=MAX_NUM_OF_THREADS, func=compute_counts_of_a_class, params_list=params)
     pool.run()
-    # print("classes counts: ")
-    # print(class_counts)
     tgraph.set_nodes_subjects_counts(d=class_counts)
-    # print("subjects for: %s" % class_counts.keys()[0])
-    # print(tgraph.find_v(class_counts.keys()[0]).num_of_subjects)
-    # print("roots: ")
-    # print(tgraph.roots)
-    # print("# subjects in the graph: ")
-    # for k in class_counts.keys():
-    #     print("%d: %s" % (tgraph.find_v(k).num_of_subjects, k))
 
 
 def compute_coverage_score_for_graph(bite):
@@ -278,9 +240,7 @@ def compute_specificity_score_for_graph(endpoint):
     tgraph.set_specificity_score()
     logger.debug("set path specificity")
     tgraph.set_path_specificity()
-    # logger.debug("set depth for graph")
     tgraph.set_depth_for_graph()
-    # tgraph.set_score_for_graph(coverage_weight=0.1, m=1, fsid=2)
 
 
 def graph_fname_from_bite(bite):
@@ -295,16 +255,12 @@ def compute_scores(bite, endpoint):
     """
     compute_coverage_score_for_graph(bite=bite)
     compute_specificity_score_for_graph(endpoint=endpoint)
-    #graph_file_name = "%d--%s--%d--%d.json" % (bite.id, bite.table, bite.column, bite.slice)
-    # graph_file_name = graph_file_name.replace(' ', '_')
     graph_file_name = graph_fname_from_bite(bite)
     graph_file_dir = os.path.join(UPLOAD_DIR, graph_file_name)
     tgraph.save(graph_file_dir)
     # bite.fname = graph_file_name
     # bite.save()
     logger.debug("graph_file_dir: "+graph_file_dir)
-    # entity_ann.graph_file.name = graph_file_name
-    # entity_ann.graph_dir = graph_file_dir
 
 
 def score(slice_id, endpoint, onlydomain):
@@ -329,13 +285,6 @@ def score(slice_id, endpoint, onlydomain):
         annotate_column(bite, endpoint, onlydomain)
         build_graph(bite=bite, endpoint=endpoint)
         compute_scores(bite=bite, endpoint=endpoint)
-
-        # tgraph.set_score_for_graph(coverage_weight=0.00001, m=100, fsid=3)
-        # # results = [(n.title, n.path_specificity) for n in tgraph.get_scores()]
-        # results = [n.path_specificity for n in tgraph.get_scores()]
-        # results.sort()
-        # print("resuts: ")
-        # print(results)
 
     return True
 
