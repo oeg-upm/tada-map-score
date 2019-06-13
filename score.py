@@ -12,6 +12,7 @@ from graph.type_graph import TypeGraph
 from multiprocessing import Process, Lock, Pipe
 
 tgraph = None
+class_counts = dict()
 
 UPLOAD_DIR = 'local_uploads'
 
@@ -153,13 +154,18 @@ def build_graph(bite, endpoint):
     logger.debug("run thread pool")
     pool = TPool(max_num_of_threads=MAX_NUM_OF_THREADS, func=func_build_graph_hierarchy, params_list=params)
     pool.run()
+    # to infer the roots automatically
+    tgraph.build_roots()
     logger.debug("thread pool is complete. The graph hierarchy should be ready")
 
 
 def annotate_column(bite, endpoint, onlydomain):
     """
-    :param fname:
-    :return:
+    :param bite:
+    :param endpoint:
+    :param onlydomain:
+
+    :return: annotated cells (dict)
     """
     fdir = os.path.join(UPLOAD_DIR, bite.fname)
     f = open(fdir)
@@ -190,9 +196,119 @@ def annotate_column(bite, endpoint, onlydomain):
     f.close()
 
 
-def score(slice_id, endpoint, onlydomain):
+def compute_counts_of_a_class(class_uri, lock, endpoint):
+    global class_counts
+
+    lock.acquire()
+    counted = class_uri in class_counts
+    lock.release()
+    if not counted:
+        lock.acquire()
+        class_counts[class_uri] = None
+        lock.release()
+        counts = easysparql.get_classes_subjects_count(classes=[class_uri], endpoint=endpoint)
+        lock.acquire()
+        class_counts[class_uri] = counts[class_uri]
+        lock.release()
+
+
+def compute_classes_counts(endpoint):
+    global tgraph
+    global class_counts
+    params = []
+    lock = Lock()
+    logger.debug("computer classes counts")
+    for class_uri in tgraph.cache:
+        p = (class_uri, lock, endpoint)
+        params.append(p)
+    pool = TPool(max_num_of_threads=MAX_NUM_OF_THREADS, func=compute_counts_of_a_class, params_list=params)
+    pool.run()
+    # print("classes counts: ")
+    # print(class_counts)
+    tgraph.set_nodes_subjects_counts(d=class_counts)
+    # print("subjects for: %s" % class_counts.keys()[0])
+    # print(tgraph.find_v(class_counts.keys()[0]).num_of_subjects)
+    # print("roots: ")
+    # print(tgraph.roots)
+    # print("# subjects in the graph: ")
+    # for k in class_counts.keys():
+    #     print("%d: %s" % (tgraph.find_v(k).num_of_subjects, k))
+
+
+def compute_coverage_score_for_graph(bite):
+    """
+    :param bite:
+    :return:
     """
 
+    f = open(os.path.join(UPLOAD_DIR, bite.fname))
+    j = json.load(f)
+    classes = []
+    for cell in j["data"].keys():
+        e_score = 1.0 / len(j["data"][cell].keys())
+        d = {
+        }
+        for entity in j["data"][cell].keys():
+            if len(j["data"][cell][entity]) == 0:
+                c_score = 0
+            else:
+                c_score = 1.0 / len(j["data"][cell][entity])
+            for class_uri in j["data"][cell][entity]:
+                if class_uri not in d:
+                    d[class_uri] = []
+                d[class_uri].append(c_score*e_score)
+
+        for curi in d.keys():
+            curi_cov = sum(d[curi]) * 1.0 / len(d[curi])
+            n = tgraph.find_v(curi)
+            if n is None:
+                print "couldn't find %s" % curi
+            n.coverage_score += curi_cov
+        del d
+    tgraph.set_converage_score()
+
+
+def compute_specificity_score_for_graph(endpoint):
+    """
+    :return:
+    """
+    global tgraph
+    compute_classes_counts(endpoint=endpoint)
+    logger.debug("set instance specificity")
+    tgraph.set_specificity_score()
+    logger.debug("set path specificity")
+    tgraph.set_path_specificity()
+    # logger.debug("set depth for graph")
+    tgraph.set_depth_for_graph()
+    # tgraph.set_score_for_graph(coverage_weight=0.1, m=1, fsid=2)
+
+
+def graph_fname_from_bite(bite):
+    graph_fname =  "%d--%s--%d--%d.json" % (bite.id, bite.table, bite.column, bite.slice)
+    graph_fname.replace(' ', '_')
+    return graph_fname
+
+
+def compute_scores(bite, endpoint):
+    """
+    :return:
+    """
+    compute_coverage_score_for_graph(bite=bite)
+    compute_specificity_score_for_graph(endpoint=endpoint)
+    #graph_file_name = "%d--%s--%d--%d.json" % (bite.id, bite.table, bite.column, bite.slice)
+    # graph_file_name = graph_file_name.replace(' ', '_')
+    graph_file_name = graph_fname_from_bite(bite)
+    graph_file_dir = os.path.join(UPLOAD_DIR, graph_file_name)
+    tgraph.save(graph_file_dir)
+    # bite.fname = graph_file_name
+    # bite.save()
+    logger.debug("graph_file_dir: "+graph_file_dir)
+    # entity_ann.graph_file.name = graph_file_name
+    # entity_ann.graph_dir = graph_file_dir
+
+
+def score(slice_id, endpoint, onlydomain):
+    """
     # annotate each cell
     # build graph
     # compute scores
@@ -203,7 +319,6 @@ def score(slice_id, endpoint, onlydomain):
     :param onlydomain:
     :return:
     """
-
     bites = Bite.select().where(Bite.id==slice_id)
     if len(bites) == 0:
         logger.warning("No bite with id: %s" % slice_id)
@@ -213,6 +328,15 @@ def score(slice_id, endpoint, onlydomain):
         logger.debug("The bite is found")
         annotate_column(bite, endpoint, onlydomain)
         build_graph(bite=bite, endpoint=endpoint)
+        compute_scores(bite=bite, endpoint=endpoint)
+
+        # tgraph.set_score_for_graph(coverage_weight=0.00001, m=100, fsid=3)
+        # # results = [(n.title, n.path_specificity) for n in tgraph.get_scores()]
+        # results = [n.path_specificity for n in tgraph.get_scores()]
+        # results.sort()
+        # print("resuts: ")
+        # print(results)
+
     return True
 
 

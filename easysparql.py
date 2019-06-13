@@ -78,3 +78,25 @@ def get_parents_of_class(class_uri, endpoint):
     results = run_query(query=query, endpoint=endpoint)
     classes = [r['c']['value'] for r in results]
     return classes
+
+
+def get_num_class_subjects(class_uri, endpoint):
+    logger.debug("count subject for class %s" % class_uri)
+    query = """
+    select count(?s) as ?num
+    where {
+    ?s a ?c.
+    ?c rdfs:subClassOf* <%s>.
+    }
+    """ % class_uri
+    results = run_query(query=query, endpoint=endpoint)
+    return results[0]['num']['value']
+
+
+def get_classes_subjects_count(classes, endpoint):
+    logger.debug("in get_classes_subjects_count")
+    d = {}
+    for c in classes:
+        num = get_num_class_subjects(c, endpoint)
+        d[c] = int(num)
+    return d

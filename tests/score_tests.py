@@ -4,6 +4,8 @@ import unittest
 import os
 import json
 from cStringIO import StringIO
+from graph import type_graph
+from score import graph_fname_from_bite, UPLOAD_DIR
 
 DATA_DIR = 'local_uploads'
 
@@ -92,6 +94,15 @@ class ScoreTest(unittest.TestCase):
         f = open(data_dir)
         computed_data = json.load(f)
         self.assertDictEqual(annotated_cells, computed_data)
+        bite = Bite.select()[0]
+        graph_file_name = graph_fname_from_bite(bite)
+        graph_file_dir = os.path.join(UPLOAD_DIR, graph_file_name)
+        tgraph = type_graph.TypeGraph()
+        tgraph.load_from_file(graph_file_dir)
+        tgraph.set_score_for_graph(coverage_weight=0.1, m=3, fsid=3)
+        results = [n for n in tgraph.get_scores()]
+        results.sort(key=lambda node: node.path_specificity)
+        self.assertEqual(results[0].title, "http://dbpedia.org/ontology/VolleyballPlayer")
         # computed_data = json.loads(f.read())
         # self.assertListEqual(sorted(annotated_cells["data"]), sorted(computed_data["data"]))
         # k1 = annotated_cells["data"][0].keys()[0]
