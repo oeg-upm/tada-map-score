@@ -2,6 +2,7 @@ import argparse
 import time
 import json
 import os
+import requests
 from models import create_tables, database, Bite
 import logging
 from logger import get_logger
@@ -251,7 +252,7 @@ def graph_fname_from_bite(bite):
 
 def compute_scores(bite, endpoint):
     """
-    :return:
+    :return: the dir of the graph file
     """
     compute_coverage_score_for_graph(bite=bite)
     compute_specificity_score_for_graph(endpoint=endpoint)
@@ -261,6 +262,7 @@ def compute_scores(bite, endpoint):
     # bite.fname = graph_file_name
     # bite.save()
     logger.debug("graph_file_dir: "+graph_file_dir)
+    return graph_file_dir
 
 
 def score(slice_id, endpoint, onlydomain):
@@ -284,7 +286,7 @@ def score(slice_id, endpoint, onlydomain):
         logger.debug("The bite is found")
         annotate_column(bite, endpoint, onlydomain)
         build_graph(bite=bite, endpoint=endpoint)
-        compute_scores(bite=bite, endpoint=endpoint)
+        graph_dir = compute_scores(bite=bite, endpoint=endpoint)
 
     return True
 
