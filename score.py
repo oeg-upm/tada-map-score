@@ -208,6 +208,8 @@ def compute_coverage_score_for_graph(bite):
     j = json.load(f)
     classes = []
     for cell in j["data"].keys():
+        if len(j["data"][cell].keys()) == 0:
+            continue
         e_score = 1.0 / len(j["data"][cell].keys())
         d = {
         }

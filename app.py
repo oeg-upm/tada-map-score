@@ -51,7 +51,7 @@ def score():
         return jsonify({'msg': 'scored'})
     else:
         logger.debug("will return and the scoring will run in a different thread")
-        comm = "python score --id %s" % str(b.id)
+        comm = "python score.py --id %s" % str(b.id)
         subprocess.Popen(comm, shell=True)
         return jsonify({'msg': 'scoring in progress'})
 
