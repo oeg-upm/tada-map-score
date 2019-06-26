@@ -23,6 +23,7 @@ class Bite(BaseModel):
     slice = IntegerField()  # slice order (position)
     addr = CharField()  # the url:ip of the server that the processed data need to be sent to
     fname = CharField()  # the name of the uploaded file
+    total = IntegerField()  # total number of slices, to be sent to the combine
 
 
 def create_tables():

@@ -18,7 +18,7 @@ class_counts = dict()
 UPLOAD_DIR = 'local_uploads'
 
 logger = get_logger(__name__)
-
+TESTING = False
 
 MAX_NUM_PROCESSES = 5
 MAX_NUM_OF_THREADS = MAX_NUM_PROCESSES
@@ -207,9 +207,11 @@ def compute_coverage_score_for_graph(bite):
     f = open(os.path.join(UPLOAD_DIR, bite.fname))
     j = json.load(f)
     classes = []
+    m = 0
     for cell in j["data"].keys():
         if len(j["data"][cell].keys()) == 0:
             continue
+        m += 1
         e_score = 1.0 / len(j["data"][cell].keys())
         d = {
         }
@@ -231,6 +233,7 @@ def compute_coverage_score_for_graph(bite):
             n.coverage_score += curi_cov
         del d
     tgraph.set_converage_score()
+    return m
 
 
 def compute_specificity_score_for_graph(endpoint):
@@ -254,9 +257,9 @@ def graph_fname_from_bite(bite):
 
 def compute_scores(bite, endpoint):
     """
-    :return: the dir of the graph file
+    :return: the dir of the graph file, m (the number of annotated cells)
     """
-    compute_coverage_score_for_graph(bite=bite)
+    m = compute_coverage_score_for_graph(bite=bite)
     compute_specificity_score_for_graph(endpoint=endpoint)
     graph_file_name = graph_fname_from_bite(bite)
     graph_file_dir = os.path.join(UPLOAD_DIR, graph_file_name)
@@ -264,7 +267,7 @@ def compute_scores(bite, endpoint):
     # bite.fname = graph_file_name
     # bite.save()
     logger.debug("graph_file_dir: "+graph_file_dir)
-    return graph_file_dir
+    return graph_file_dir, m
 
 
 def get_m(file_dir):
@@ -282,26 +285,37 @@ def get_m(file_dir):
     return m
 
 
-def send_scored_graph(bite, url, graph_file_dir):
+def send_scored_graph(bite, graph_file_dir, m):
     """
     :param bite:
-    :param url:
     :param graph_file_dir:
+    :param m: The number of annotated cells
     :return:
     """
-
     f = open(graph_file_dir)
     content = f.read()
-    files = {'file_slice': ("graph", content)}
-    m = get_m(os.path.join(UPLOAD_DIR, bite.fname))
-    values = {'table': bite.table, 'column': bite.column, 'slice': bite.slice, 'total': total_num_slices,
-              'm': m,
-              'addr': COMBINE_HOST + ":" + str(port)}
-    score_url = "http://127.0.0.1:" + str(score_port) + "/score"
-    # print("files: "+str(files))
-    # print("post data: "+str(values))
-    # print("score url: "+str(score_url))
-    r = requests.post(score_url, files=files, data=values)
+    files = {'graph': ("graph", content)}
+    # m = get_m(os.path.join(UPLOAD_DIR, bite.fname))
+    values = {'table': bite.table, 'column': bite.column, 'slice': bite.slice, 'total': bite.total,
+              'm': m}
+    print("bite address: ")
+    print(bite.addr)
+    print("TESTING: "+str(TESTING))
+
+    if not TESTING:
+        url = bite.addr
+        if url[-1] != "/":
+            url += "/"
+        url += "add"
+        print("URL str: ")
+        print(url)
+        r = requests.post(url, files=files, data=values)
+        if r.status_code == 200:
+            logger.info("graph is sent to combine: "+str(bite.addr))
+        else:
+            logger.error("Error from combine: "+str(r.content))
+    else:
+        logger.debug("testing is open and hence, the graph will not be sent to the combine")
 
 
 def score(slice_id, endpoint, onlydomain):
@@ -325,22 +339,30 @@ def score(slice_id, endpoint, onlydomain):
         logger.debug("The bite is found")
         annotate_column(bite, endpoint, onlydomain)
         build_graph(bite=bite, endpoint=endpoint)
-        graph_dir = compute_scores(bite=bite, endpoint=endpoint)
-
+        graph_dir, m = compute_scores(bite=bite, endpoint=endpoint)
+        send_scored_graph(bite=bite, graph_file_dir=graph_dir, m=m)
 
     return True
 
 
 def parse_args(args=None):
+    global logger
+    global TESTING
     parser = argparse.ArgumentParser(description='Score a given slice of data')
     parser.add_argument('--id', help="The id of the slice to be scored")
     parser.add_argument('--endpoint', default='http://dbpedia.org/sparql', help='The url of the SPARQL endpoint')
     parser.add_argument('--onlydomain', default='http://dbpedia.org/ontology/',
                         help="Restrict the annotation of cells to include the given domain")
+    parser.add_argument('--testing', action="store_true", help="enable testing")
     if args is None:
         args = parser.parse_args()
     else:
         args = parser.parse_args(args)
+
+    if args.testing:
+        logger = get_logger(__name__, logging.DEBUG)
+        TESTING = True
+        logger.info("Testing is enabled")
 
     if args.id:
         score(slice_id=args.id, endpoint=args.endpoint, onlydomain=args.onlydomain)

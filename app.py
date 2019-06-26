@@ -33,8 +33,9 @@ def score():
     column = request.form['column']
     fname = table_name + "__" + get_random() + "__" + str(column) + ".tsv"
     fname = secure_filename(fname)
+    total = int(request.form['total'])
     b = Bite(table=table_name, slice=request.form['slice'], column=column,
-             addr=request.form['addr'], fname=fname)
+             addr=request.form['addr'], fname=fname, total=total)
     b.save()
     uploaded_file.save(os.path.join('local_uploads', fname))
     get_params = {
@@ -42,12 +43,13 @@ def score():
         'column': b.column,
         'slice': b.slice,
         'addr': b.addr,
-        'total': request.form['total']
+        'total': total,
     }
     if app.testing:
         from score import parse_args
         logger.debug("will wait for the scoring to be done")
-        parse_args(args=["--id", "%d" % b.id])
+        logger.debug("id: %d" % b.id)
+        parse_args(args=["--id", "%d" % b.id, "--testing"])
         return jsonify({'msg': 'scored'})
     else:
         logger.debug("will return and the scoring will run in a different thread")
