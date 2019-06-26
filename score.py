@@ -245,7 +245,7 @@ def compute_specificity_score_for_graph(endpoint):
 
 
 def graph_fname_from_bite(bite):
-    graph_fname =  "%d--%s--%d--%d.json" % (bite.id, bite.table, bite.column, bite.slice)
+    graph_fname = "%d--%s--%d--%d.json" % (bite.id, bite.table, bite.column, bite.slice)
     graph_fname.replace(' ', '_')
     return graph_fname
 
@@ -263,6 +263,43 @@ def compute_scores(bite, endpoint):
     # bite.save()
     logger.debug("graph_file_dir: "+graph_file_dir)
     return graph_file_dir
+
+
+def get_m(file_dir):
+    """
+    :param file_dir:
+    :return: m
+    """
+    f = open(file_dir)
+    j = json.loads(f.read())
+    m = 0
+    for cell in j["data"].keys():
+        if len(j["data"][cell].keys()):  # has at least one entity
+            m+=1
+    f.close()
+    return m
+
+
+def send_scored_graph(bite, url, graph_file_dir):
+    """
+    :param bite:
+    :param url:
+    :param graph_file_dir:
+    :return:
+    """
+
+    f = open(graph_file_dir)
+    content = f.read()
+    files = {'file_slice': ("graph", content)}
+    m = get_m(os.path.join(UPLOAD_DIR, bite.fname))
+    values = {'table': bite.table, 'column': bite.column, 'slice': bite.slice, 'total': total_num_slices,
+              'm': m,
+              'addr': COMBINE_HOST + ":" + str(port)}
+    score_url = "http://127.0.0.1:" + str(score_port) + "/score"
+    # print("files: "+str(files))
+    # print("post data: "+str(values))
+    # print("score url: "+str(score_url))
+    r = requests.post(score_url, files=files, data=values)
 
 
 def score(slice_id, endpoint, onlydomain):
@@ -287,6 +324,7 @@ def score(slice_id, endpoint, onlydomain):
         annotate_column(bite, endpoint, onlydomain)
         build_graph(bite=bite, endpoint=endpoint)
         graph_dir = compute_scores(bite=bite, endpoint=endpoint)
+
 
     return True
 
