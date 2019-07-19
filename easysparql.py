@@ -90,8 +90,10 @@ def get_num_class_subjects(class_uri, endpoint):
     }
     """ % class_uri
     results = run_query(query=query, endpoint=endpoint)
-    return results[0]['num']['value']
-
+    if results != []:
+        return results[0]['num']['value']
+    else:
+        return -1
 
 def get_classes_subjects_count(classes, endpoint):
     logger.debug("in get_classes_subjects_count")

@@ -195,6 +195,17 @@ def compute_classes_counts(endpoint):
         params.append(p)
     pool = TPool(max_num_of_threads=MAX_NUM_OF_THREADS, func=compute_counts_of_a_class, params_list=params)
     pool.run()
+
+    # The below two loops are to fix counts of classes that the endpoint could not return
+    max_num = 0
+    for k in class_counts:
+        if class_counts[k] > max_num:
+            max_num = class_counts[k]
+
+    for k in class_counts:
+        if class_counts[k] == -1:
+            class_counts[k] = max_num * 2
+
     tgraph.set_nodes_subjects_counts(d=class_counts)
 
 
