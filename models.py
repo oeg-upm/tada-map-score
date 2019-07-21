@@ -25,6 +25,15 @@ class Bite(BaseModel):
     fname = CharField()  # the name of the uploaded file
     total = IntegerField()  # total number of slices, to be sent to the combine
 
+    def json(self):
+        return{
+            "id": self.id,
+            "table": self.table,
+            "slice": self.slice,
+            "addr": self.addr,
+            "fname": self.fname,
+            "total": self.total,
+        }
 
 def create_tables():
     with database:

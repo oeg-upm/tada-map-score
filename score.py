@@ -365,10 +365,15 @@ def parse_args(args=None):
     parser.add_argument('--onlydomain', default='http://dbpedia.org/ontology/',
                         help="Restrict the annotation of cells to include the given domain")
     parser.add_argument('--testing', action="store_true", help="enable testing")
+    parser.add_argument('--getm', help="get m from a given file")
     if args is None:
         args = parser.parse_args()
     else:
         args = parser.parse_args(args)
+
+    if args.getm:
+        print(get_m(args.getm))
+        return
 
     if args.testing:
         logger = get_logger(__name__, logging.DEBUG)

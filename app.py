@@ -1,16 +1,18 @@
 import os
-
 from models import Bite, database, create_tables
-from flask import Flask, g, request, render_template, jsonify
+from flask import Flask, g, request, render_template, jsonify, abort, send_from_directory
 from werkzeug.utils import secure_filename
 from graph import type_graph
 import requests
 import random
 import string
 import subprocess
+from score import UPLOAD_DIR, graph_fname_from_bite
 from logger import get_logger
 
+
 logger = get_logger(__name__)
+
 
 app = Flask(__name__)
 
@@ -25,9 +27,11 @@ def hello_world():
     return 'Hello World! This is score'
 
 
-@app.route('/score', methods=['POST'])
+@app.route('/score', methods=['POST','GET'])
 def score():
     logger.debug("\nin score")
+    if request.method == 'GET':
+        return render_template('score.html')
     uploaded_file = request.files['file_slice']
     table_name = request.form['table']
     column = request.form['column']
@@ -45,7 +49,7 @@ def score():
         'addr': b.addr,
         'total': total,
     }
-    if app.testing:
+    if app.testing or 'test' in request.form:
         from score import parse_args
         logger.debug("will wait for the scoring to be done")
         logger.debug("id: %d" % b.id)
@@ -89,6 +93,22 @@ def fetch():
         bites += "</tr>"
     bites += "</table>"
     return bites
+
+
+@app.route('/list', methods=['GET'])
+def list_bites():
+    return jsonify(bites=[b.json() for b in Bite.select()])
+
+
+@app.route("/get_graph", methods=["GET"])
+def get_graph():
+    bite_id = request.values.get('id')
+    bites = Bite.select().where(Bite.id==bite_id)
+    if len(bites) == 1:
+        bite = bites[0]
+        graph_file_name = graph_fname_from_bite(bite)
+        return send_from_directory(UPLOAD_DIR, graph_file_name, as_attachment=True)
+    abort(404)
 
 
 @app.before_request
