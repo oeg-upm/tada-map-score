@@ -1,11 +1,40 @@
 from SPARQLWrapper import SPARQLWrapper, JSON
 from logger import get_logger
 import logging
+from time import sleep
+import random
 
 logger = get_logger(__name__, level=logging.DEBUG)
 
+NUM_OF_TRIALS = 3  # times
+WAIT_TIME = 3  # seconds
 
-def run_query(query, endpoint):
+# def run_query(query, endpoint):
+#     """
+#     :param query: raw SPARQL query
+#     :param endpoint: endpoint source that hosts the data
+#     :return: query result as a dict
+#     """
+#     sparql = SPARQLWrapper(endpoint=endpoint)
+#     sparql.setQuery(query=query)
+#     sparql.setMethod("POST")
+#     sparql.setReturnFormat(JSON)
+#     try:
+#         results = sparql.query().convert()
+#         if len(results["results"]["bindings"]) > 0:
+#             return results["results"]["bindings"]
+#         else:
+#             logger.debug("returns 0 rows")
+#             logger.debug("query: <%s>" % str(query).strip())
+#             return []
+#     except Exception as e:
+#         logger.warning(str(e))
+#         logger.warning("sparql error: $$<%s>$$" % str(e))
+#         logger.warning("query: $$<%s>$$" % str(query))
+#         return []
+
+
+def run_query_once(query, endpoint):
     """
     :param query: raw SPARQL query
     :param endpoint: endpoint source that hosts the data
@@ -27,7 +56,23 @@ def run_query(query, endpoint):
         logger.warning(str(e))
         logger.warning("sparql error: $$<%s>$$" % str(e))
         logger.warning("query: $$<%s>$$" % str(query))
-        return []
+        return None
+
+
+def run_query(query, endpoint):
+    """
+    :param query:
+    :param endpoint:
+    :return:
+    """
+    for i in range(NUM_OF_TRIALS):
+        res = run_query_once(query, endpoint)
+        if res is None:
+            wait_time = random.randint(WAIT_TIME, WAIT_TIME*2)
+            sleep(wait_time)
+        else:
+            return res
+    raise Exception("error running the query <$\n%s$>\n\n" % query)
 
 
 def get_entities(subject_name, endpoint):
@@ -94,6 +139,7 @@ def get_num_class_subjects(class_uri, endpoint):
         return results[0]['num']['value']
     else:
         return -1
+
 
 def get_classes_subjects_count(classes, endpoint):
     logger.debug("in get_classes_subjects_count")

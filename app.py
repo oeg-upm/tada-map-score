@@ -27,7 +27,7 @@ def hello_world():
     return 'Hello World! This is score'
 
 
-@app.route('/score', methods=['POST','GET'])
+@app.route('/score', methods=['POST', 'GET'])
 def score():
     logger.debug("\nin score")
     if request.method == 'GET':
@@ -42,13 +42,6 @@ def score():
              addr=request.form['addr'], fname=fname, total=total)
     b.save()
     uploaded_file.save(os.path.join('local_uploads', fname))
-    get_params = {
-        'table': b.table,
-        'column': b.column,
-        'slice': b.slice,
-        'addr': b.addr,
-        'total': total,
-    }
     if app.testing or 'test' in request.form:
         from score import parse_args
         logger.debug("will wait for the scoring to be done")

@@ -61,7 +61,7 @@ def func_annotate_cell(v, endpoint, onlydomain, lock, pipe):
     """
     logger.debug("in func_annotate_cell")
     d = annotate_cell(v, endpoint, onlydomain)
-    logger.debug("annotated: "+v)
+    # logger.debug("annotated: "+v)
     lock.acquire()
     pipe.send(d)
     lock.release()
@@ -74,10 +74,10 @@ def func_collect_annotations(pipe):
         logger.debug("collect: "+str(d))
         cells.update(d)
         d = pipe.recv()
-    logger.debug("Gotten the terminal signal")
+    logger.info("Gotten the terminal signal")
     pipe.send(cells)
     while True:
-        logger.debug("waiting to get the data from the pipe")
+        logger.info("waiting to get the data from the pipe")
         time.sleep(1)
 
 
@@ -123,12 +123,12 @@ def build_graph(bite, endpoint):
     for c in unique_classes:
         p = (c, lock, endpoint)
         params.append(p)
-    logger.debug("run thread pool")
-    pool = TPool(max_num_of_threads=MAX_NUM_OF_THREADS, func=func_build_graph_hierarchy, params_list=params)
+    logger.info("run thread pool")
+    pool = TPool(max_num_of_threads=MAX_NUM_OF_THREADS, func=func_build_graph_hierarchy, params_list=params, logger=logger)
     pool.run()
     # to infer the roots automatically
     tgraph.build_roots()
-    logger.debug("thread pool is complete. The graph hierarchy should be ready")
+    logger.info("thread pool is complete. The graph hierarchy should be ready")
 
 
 def annotate_column(bite, endpoint, onlydomain):
@@ -152,12 +152,12 @@ def annotate_column(bite, endpoint, onlydomain):
     collector_process.start()
     pool = PPool(max_num_of_processes=MAX_NUM_PROCESSES, func=func_annotate_cell, params_list=params)
     pool.run()
-    logger.debug("sending signal to ask for the annotations")
+    logger.info("sending signal to ask for the annotations")
     pipe_a.send(None)
     annotated_cells = pipe_a.recv()
-    logger.debug("annotated cells are recovered")
+    logger.info("annotated cells are recovered")
     collector_process.terminate()
-    logger.debug("annotated cells: "+str(annotated_cells))
+    # logger.debug("annotated cells: "+str(annotated_cells))
     os.remove(fdir)
     json_fname = ".".join(bite.fname.split(".")[:-1])+".json"
     bite.fname = json_fname
@@ -189,7 +189,7 @@ def compute_classes_counts(endpoint):
     global class_counts
     params = []
     lock = Lock()
-    logger.debug("computer classes counts")
+    logger.info("computer classes counts")
     for class_uri in tgraph.cache:
         p = (class_uri, lock, endpoint)
         params.append(p)
@@ -253,9 +253,9 @@ def compute_specificity_score_for_graph(endpoint):
     """
     global tgraph
     compute_classes_counts(endpoint=endpoint)
-    logger.debug("set instance specificity")
+    logger.info("set instance specificity")
     tgraph.set_specificity_score()
-    logger.debug("set path specificity")
+    logger.info("set path specificity")
     tgraph.set_path_specificity()
     tgraph.set_depth_for_graph()
 
@@ -277,7 +277,7 @@ def compute_scores(bite, endpoint):
     tgraph.save(graph_file_dir)
     # bite.fname = graph_file_name
     # bite.save()
-    logger.debug("graph_file_dir: "+graph_file_dir)
+    logger.info("graph_file_dir: "+graph_file_dir)
     return graph_file_dir, m
 
 
@@ -309,24 +309,24 @@ def send_scored_graph(bite, graph_file_dir, m):
     # m = get_m(os.path.join(UPLOAD_DIR, bite.fname))
     values = {'table': bite.table, 'column': bite.column, 'slice': bite.slice, 'total': bite.total,
               'm': m}
-    print("bite address: ")
-    print(bite.addr)
-    print("TESTING: "+str(TESTING))
+    logger.debug("bite address: ")
+    logger.debug(bite.addr)
+    logger.info("TESTING: "+str(TESTING))
 
     if not TESTING:
         url = bite.addr
         if url[-1] != "/":
             url += "/"
         url += "add"
-        print("URL str: ")
-        print(url)
+        logger.info("URL str: ")
+        logger.info(url)
         r = requests.post(url, files=files, data=values)
         if r.status_code == 200:
             logger.info("graph is sent to combine: "+str(bite.addr))
         else:
             logger.error("Error from combine: "+str(r.content))
     else:
-        logger.debug("testing is open and hence, the graph will not be sent to the combine")
+        logger.info("testing is open and hence, the graph will not be sent to the combine")
 
 
 def score(slice_id, endpoint, onlydomain):
@@ -351,6 +351,7 @@ def score(slice_id, endpoint, onlydomain):
         annotate_column(bite, endpoint, onlydomain)
         build_graph(bite=bite, endpoint=endpoint)
         graph_dir, m = compute_scores(bite=bite, endpoint=endpoint)
+        logger.info("m = %d" % m)
         send_scored_graph(bite=bite, graph_file_dir=graph_dir, m=m)
 
     return True
