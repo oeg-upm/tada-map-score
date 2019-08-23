@@ -17,7 +17,7 @@ class_counts = dict()
 
 UPLOAD_DIR = 'local_uploads'
 
-logger = get_logger(__name__)
+logger = get_logger(__name__, level=logging.INFO)
 TESTING = False
 
 MAX_NUM_PROCESSES = 5

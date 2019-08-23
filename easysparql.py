@@ -4,34 +4,10 @@ import logging
 from time import sleep
 import random
 
-logger = get_logger(__name__, level=logging.DEBUG)
+logger = get_logger(__name__, level=logging.INFO)
 
 NUM_OF_TRIALS = 3  # times
 WAIT_TIME = 3  # seconds
-
-# def run_query(query, endpoint):
-#     """
-#     :param query: raw SPARQL query
-#     :param endpoint: endpoint source that hosts the data
-#     :return: query result as a dict
-#     """
-#     sparql = SPARQLWrapper(endpoint=endpoint)
-#     sparql.setQuery(query=query)
-#     sparql.setMethod("POST")
-#     sparql.setReturnFormat(JSON)
-#     try:
-#         results = sparql.query().convert()
-#         if len(results["results"]["bindings"]) > 0:
-#             return results["results"]["bindings"]
-#         else:
-#             logger.debug("returns 0 rows")
-#             logger.debug("query: <%s>" % str(query).strip())
-#             return []
-#     except Exception as e:
-#         logger.warning(str(e))
-#         logger.warning("sparql error: $$<%s>$$" % str(e))
-#         logger.warning("query: $$<%s>$$" % str(query))
-#         return []
 
 
 def run_query_once(query, endpoint):

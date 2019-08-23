@@ -8,11 +8,11 @@ import random
 import string
 import subprocess
 from score import UPLOAD_DIR, graph_fname_from_bite
+import logging
 from logger import get_logger
 
 
-logger = get_logger(__name__)
-
+logger = get_logger(__name__, level=logging.INFO)
 
 app = Flask(__name__)
 
