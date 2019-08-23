@@ -103,6 +103,7 @@ class ScoreTest(unittest.TestCase):
         results = [n for n in tgraph.get_scores()]
         results.sort(key=lambda node: node.path_specificity)
         self.assertEqual(results[0].title, "http://dbpedia.org/ontology/VolleyballPlayer")
+        self.assertEqual(bite.status, "complete")
         # computed_data = json.loads(f.read())
         # self.assertListEqual(sorted(annotated_cells["data"]), sorted(computed_data["data"]))
         # k1 = annotated_cells["data"][0].keys()[0]

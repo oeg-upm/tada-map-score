@@ -3,7 +3,7 @@ import time
 import json
 import os
 import requests
-from models import create_tables, database, Bite
+from models import create_tables, database, Bite, STATUS_INPROGRESS, STATUS_COMPLETE
 import logging
 from logger import get_logger
 import easysparql
@@ -348,12 +348,16 @@ def score(slice_id, endpoint, onlydomain):
     else:
         bite = bites[0]
         logger.debug("The bite is found")
+        bite.status = STATUS_INPROGRESS
+        bite.save()
+
         annotate_column(bite, endpoint, onlydomain)
         build_graph(bite=bite, endpoint=endpoint)
         graph_dir, m = compute_scores(bite=bite, endpoint=endpoint)
         logger.info("m = %d" % m)
         send_scored_graph(bite=bite, graph_file_dir=graph_dir, m=m)
-
+        bite.status = STATUS_COMPLETE
+        bite.save()
     return True
 
 

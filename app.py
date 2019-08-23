@@ -1,5 +1,5 @@
 import os
-from models import Bite, database, create_tables
+from models import Bite, database, create_tables, STATUS_COMPLETE, STATUS_INPROGRESS
 from flask import Flask, g, request, render_template, jsonify, abort, send_from_directory
 from werkzeug.utils import secure_filename
 from graph import type_graph
@@ -46,6 +46,8 @@ def score():
         from score import parse_args
         logger.debug("will wait for the scoring to be done")
         logger.debug("id: %d" % b.id)
+        b.status = STATUS_INPROGRESS
+        b.save()
         parse_args(args=["--id", "%d" % b.id, "--testing"])
         return jsonify({'msg': 'scored'})
     else:
