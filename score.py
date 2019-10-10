@@ -141,7 +141,8 @@ def annotate_column(bite, endpoint, onlydomain):
     """
     fdir = os.path.join(UPLOAD_DIR, bite.fname)
     f = open(fdir)
-    values = f.read().split('\t')
+    # values = f.read().split('\t')
+    values = f.read().strip().split('\t')
     lock = Lock()
     pipe_a, pipe_b = Pipe(True)  # duplex
     params = []
